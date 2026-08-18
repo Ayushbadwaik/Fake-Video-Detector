@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: fakedetect-ai
+    env: python
+    buildCommand: "npm install && npm run build && pip install -r requirements.txt"
+    startCommand: "python backend/main.py"
+    envVars:
+      - key: PORT
+        value: 10000
