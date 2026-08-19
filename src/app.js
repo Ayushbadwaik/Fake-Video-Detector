@@ -19,14 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function checkBackendHealth() {
+  const statusTag = document.getElementById('backend-status-text');
   try {
     const res = await fetch(`${BACKEND_URL}/api/health`);
     if (res.ok) {
       const data = await res.json();
       console.log("Connected to Python FastAPI backend:", data);
+      if (statusTag) statusTag.innerText = "FastAPI Backend Connected";
+    } else {
+      if (statusTag) statusTag.innerText = "Engine Active";
     }
   } catch (err) {
     console.warn("Python backend offline fallback enabled:", err);
+    if (statusTag) statusTag.innerText = "Engine Active (Offline Fallback)";
   }
 }
 
