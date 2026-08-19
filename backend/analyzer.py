@@ -109,13 +109,15 @@ def analyze_video_file_or_url(video_source, is_url=False, sensitivity='balanced'
         str(extracted_meta.get('channel', ''))
     ).lower()
 
-    # Strict Word-Boundary AI & Deepfake Hashtag / Keyword Patterns (Includes AI Art, AI Channels & Generative Tools)
+    # Strict Word-Boundary AI & Deepfake Hashtag / Keyword Patterns (Includes AI Art, AI Editing & Talking Avatars)
     ai_patterns = [
-        r'\b#?ai\b', r'\b#?aivideo\b', r'\b#?deepfake\b', r'\b#?faceswap\b', 
-        r'\b#?sora\b', r'\b#?gen3\b', r'\b#?gen-3\b', r'\b#?runway\b', r'\b#?midjourney\b',
-        r'\b#?synthetic\b', r'\b#?generative\b', r'\b#?pani\s*puri\b', r'\b#?dall-?e\b',
-        r'\b#?flux\b', r'\b#?stable\s*diffusion\b', r'\b#?ai\s*art\b', r'\b#?ai\s*story\b',
-        r'\b#?ai\s*animation\b', r'\b#?ai\s*image\b', r'\b#?ai\s*generated\b'
+        r'\b#?ai\b', r'\b#?aivideo\b', r'\b#?ai\s*video\b', r'\b#?ai\s*editing\b', r'\b#?ai\s*se\b',
+        r'\b#?ai\s*kaise\b', r'\b#?talking\s*avatar\b', r'\b#?avatar\b', r'\b#?prompt\b',
+        r'\b#?deepfake\b', r'\b#?faceswap\b', r'\b#?sora\b', r'\b#?gen3\b', r'\b#?gen-3\b', 
+        r'\b#?runway\b', r'\b#?midjourney\b', r'\b#?synthetic\b', r'\b#?generative\b', 
+        r'\b#?dall-?e\b', r'\b#?flux\b', r'\b#?stable\s*diffusion\b', r'\b#?ai\s*art\b', 
+        r'\b#?ai\s*story\b', r'\b#?ai\s*animation\b', r'\b#?ai\s*image\b', r'\b#?ai\s*generated\b',
+        r'\b#?edimakor\b', r'\b#?heygen\b', r'\b#?elevenlabs\b', r'\b#?ai\s*voice\b'
     ]
     real_patterns = [
         r'\binterview\b', r'\bnews\b', r'\bvlog\b', r'\breal camera\b', r'\bunfiltered\b', 
@@ -138,7 +140,7 @@ def analyze_video_file_or_url(video_source, is_url=False, sensitivity='balanced'
         # 2. Warp motion boundary displacement
         elif avg_laplacian < 75.0 and avg_motion > 9.0:
             base_synthetic_score = 72.0
-        # 3. Hyper-sharp static AI image-to-video / AI art rendering (High laplacian + low motion + low sensor grain)
+        # 3. Hyper-sharp static AI image-to-video / AI art rendering
         elif avg_laplacian > 320.0 and avg_motion < 1.5 and avg_fft_ratio < 0.28:
             base_synthetic_score = 84.0
         elif avg_entropy < 5.2 and avg_fft_ratio < 0.18:
