@@ -99,41 +99,48 @@ def analyze_video_file_or_url(video_source, is_url=False, sensitivity='balanced'
     avg_entropy = float(np.mean(color_entropies)) if color_entropies else 7.6
     avg_motion = float(np.mean(motion_discontinuities)) if motion_discontinuities else 1.2
 
-    # Comprehensive Metadata Text Analysis (Title, Description, Tags ONLY - excluding URL parameters)
+    # Comprehensive Metadata Text Analysis (Title, Description, Tags, Uploader, Channel)
     meta_text = (
         str(video_title) + " " +
         str(extracted_meta.get('title', '')) + " " +
         str(extracted_meta.get('description', '')) + " " +
-        str(extracted_meta.get('tags', ''))
+        str(extracted_meta.get('tags', '')) + " " +
+        str(extracted_meta.get('uploader', '')) + " " +
+        str(extracted_meta.get('channel', ''))
     ).lower()
 
-    # Strict Word-Boundary AI & Deepfake Hashtag / Keyword Patterns
+    # Strict Word-Boundary AI & Deepfake Hashtag / Keyword Patterns (Includes AI Art, AI Channels & Generative Tools)
     ai_patterns = [
         r'\b#?ai\b', r'\b#?aivideo\b', r'\b#?deepfake\b', r'\b#?faceswap\b', 
         r'\b#?sora\b', r'\b#?gen3\b', r'\b#?gen-3\b', r'\b#?runway\b', r'\b#?midjourney\b',
-        r'\b#?synthetic\b', r'\b#?generative\b', r'\b#?pani\s*puri\b'
+        r'\b#?synthetic\b', r'\b#?generative\b', r'\b#?pani\s*puri\b', r'\b#?dall-?e\b',
+        r'\b#?flux\b', r'\b#?stable\s*diffusion\b', r'\b#?ai\s*art\b', r'\b#?ai\s*story\b',
+        r'\b#?ai\s*animation\b', r'\b#?ai\s*image\b', r'\b#?ai\s*generated\b'
     ]
     real_patterns = [
         r'\binterview\b', r'\bnews\b', r'\bvlog\b', r'\breal camera\b', r'\bunfiltered\b', 
-        r'\bspeech\b', r'\braw camera\b', r'\biphone\b', r'\bpodcast\b', r'\bofficial\b'
+        r'\bspeech\b', r'\braw camera\b', r'\biphone\b', r'\bpodcast\b', r'\bofficial broadcast\b'
     ]
 
     has_ai_tag = any(re.search(pat, meta_text) for pat in ai_patterns)
     has_real_tag = any(re.search(pat, meta_text) for pat in real_patterns)
 
-    # Calibrated Synthetic Score Calculation (Prevents False Positives on standard YouTube compressed videos)
+    # Calibrated Synthetic Score Calculation
     if has_ai_tag:
         base_synthetic_score = 91.8
     elif has_real_tag:
         base_synthetic_score = 6.4
     else:
         # Multi-factor Computer Vision Feature Inspection
-        # Standard YouTube compression has laplacian ~100-250 and fft ratio ~0.25-0.45 natively.
-        # Synthetic AI requires simultaneous severe anomalies across edge blur, entropy, and FFT energy.
+        # 1. Over-smoothed diffusion/GAN blur
         if avg_laplacian < 55.0 and avg_entropy < 5.8 and avg_fft_ratio < 0.22:
             base_synthetic_score = 86.5
+        # 2. Warp motion boundary displacement
         elif avg_laplacian < 75.0 and avg_motion > 9.0:
             base_synthetic_score = 72.0
+        # 3. Hyper-sharp static AI image-to-video / AI art rendering (High laplacian + low motion + low sensor grain)
+        elif avg_laplacian > 320.0 and avg_motion < 1.5 and avg_fft_ratio < 0.28:
+            base_synthetic_score = 84.0
         elif avg_entropy < 5.2 and avg_fft_ratio < 0.18:
             base_synthetic_score = 68.0
         else:
