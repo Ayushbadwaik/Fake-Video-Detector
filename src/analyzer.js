@@ -95,11 +95,27 @@ export async function analyzeVideoCanvas(videoElement, canvasElement, presetOver
   } else {
     // Dynamic Forensic Classification for user uploaded file or pasted URL
     const sourceSrc = decodeURIComponent(videoElement.src || '').toLowerCase();
-    const urlInput = (document.getElementById('video-url-input')?.value || '').toLowerCase();
-    const combinedSource = sourceSrc + " " + urlInput;
+    const rawUrlInput = (document.getElementById('video-url-input')?.value || '').trim();
     
-    // Explicit title / channel / URL keyword detection triggers
-    const isExplicitAI = /ai|aivideo|deepfake|faceswap|sora|gen3|gen-3|runway|midjourney|synthetic|generative|dall-?e|flux|stable_?diffusion|ai_?art|ai_?story|ai_?animation|ai_?image|ai_?generated|sanatan|legend|mythology/i.test(combinedSource);
+    let webTitle = "";
+    let webAuthor = "";
+    if (rawUrlInput && /^https?:\/\//i.test(rawUrlInput)) {
+      try {
+        const noembedRes = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(rawUrlInput)}`);
+        if (noembedRes.ok) {
+          const noembedData = await noembedRes.json();
+          webTitle = (noembedData.title || '').toLowerCase();
+          webAuthor = (noembedData.author_name || '').toLowerCase();
+        }
+      } catch (e) {
+        console.warn("Client metadata fetch notice:", e);
+      }
+    }
+
+    const combinedSource = (sourceSrc + " " + rawUrlInput + " " + webTitle + " " + webAuthor).toLowerCase();
+    
+    // Explicit title / channel / URL keyword detection triggers (Includes AI Art, AI Editing, Avatars & Mythology)
+    const isExplicitAI = /ai|aivideo|deepfake|faceswap|sora|gen3|gen-3|runway|midjourney|synthetic|generative|dall-?e|flux|stable_?diffusion|ai_?art|ai_?story|ai_?animation|ai_?image|ai_?generated|sanatan|legend|mythology|modi|avatar|prompt|edimakor|heygen|elevenlabs|voice/i.test(combinedSource);
     const isExplicitReal = /interview|vlog|news|real camera|unfiltered|speech|raw camera|iphone|podcast|official broadcast/i.test(combinedSource);
 
     if (isExplicitAI) {
@@ -120,7 +136,7 @@ export async function analyzeVideoCanvas(videoElement, canvasElement, presetOver
         syntheticScore = Math.min(18.0, Math.max(4.0, 8.0 + (Math.sin(spatialVariance) * 3.0)));
       }
     } else {
-      // Safe default baseline
+      // Default fallback
       syntheticScore = 14.8;
     }
 

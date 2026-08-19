@@ -308,6 +308,26 @@ def extract_yt_dlp_info(url_input):
     # Extract clean URL if hashtag was appended in input
     clean_url = url_input.split(' ')[0].split('#')[0] if ' ' in url_input or '#' in url_input else url_input
 
+    # Step 1: Pre-fetch reliable oEmbed/NoEmbed metadata (Bypasses YouTube bot block on Cloud IPs like Render)
+    title = "Web Video Stream"
+    description = ""
+    tags = ""
+    uploader = "Unknown Creator"
+    channel = ""
+
+    if 'youtube.com' in clean_url or 'youtu.be' in clean_url:
+        try:
+            oembed_url = f"https://noembed.com/embed?url={requests.utils.quote(clean_url)}"
+            resp = requests.get(oembed_url, timeout=4)
+            if resp.status_code == 200:
+                data = resp.json()
+                title = data.get('title') or title
+                uploader = data.get('author_name') or uploader
+                channel = data.get('author_name') or channel
+        except Exception:
+            pass
+
+    # Step 2: Extract yt-dlp info for direct stream URL
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
@@ -322,20 +342,30 @@ def extract_yt_dlp_info(url_input):
             if not direct_url and formats:
                 direct_url = formats[0].get('url')
 
+            title = info.get('title') or title
+            description = info.get('description') or description
+            tags = " ".join(info.get('tags', []) if info.get('tags') else [])
+            uploader = info.get('uploader') or uploader
+            channel = info.get('channel') or channel
+
             return {
-                "title": info.get('title', 'YouTube Video Stream'),
-                "description": info.get('description', ''),
-                "tags": " ".join(info.get('tags', [])),
-                "uploader": info.get('uploader', 'Unknown Creator'),
+                "title": title,
+                "description": description,
+                "tags": tags,
+                "uploader": uploader,
+                "channel": channel,
                 "stream_url": direct_url or clean_url,
                 "fallback_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
             }
     except Exception as e:
-        print("yt-dlp extraction note:", e)
+        safe_msg = repr(e)
+        print("yt-dlp extraction note:", safe_msg)
         return {
-            "title": "Web Video Stream",
-            "description": "",
-            "tags": "",
+            "title": title,
+            "description": description,
+            "tags": tags,
+            "uploader": uploader,
+            "channel": channel,
             "stream_url": clean_url,
             "fallback_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
         }
